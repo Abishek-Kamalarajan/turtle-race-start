@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Turtle Race Betting</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: #0d1f16;
+    color: #eee;
+    font-family: Arial, Helvetica, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+  }
+  h1 { margin: 8px 0 0; font-size: 20px; font-weight: normal; }
+  #board {
+    background: #1b3a2b;
+    border: 2px solid #3a5c46;
+    border-radius: 6px;
+  }
+  #controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+    max-width: 500px;
+  }
+  select, button {
+    font-size: 15px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: 1px solid #3a5c46;
+    background: #142a1e;
+    color: #eee;
+  }
+  button {
+    cursor: pointer;
+    background: #2f6b46;
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  #message {
+    min-height: 24px;
+    font-weight: bold;
+    font-size: 16px;
+  }
+</style>
+</head>
+<body>
+  <h1>Turtle Race Betting</h1>
+  <canvas id="board" width="500" height="400"></canvas>
+  <div id="controls">
+    <label for="bet">Make your bet:</label>
+    <select id="bet"></select>
+    <button id="startBtn">Start Race</button>
+    <button id="resetBtn" disabled>Reset</button>
+  </div>
+  <div id="message"></div>
+
+<script>
+const colors = ["red", "green", "yellow", "black", "purple", "orange"];
+const yPositions = [-70, -40, -10, 20, 50, 80];
+
+const canvas = document.getElementById("board");
+const ctx = canvas.getContext("2d");
+const width = canvas.width;
+const height = canvas.height;
+
+const betSelect = document.getElementById("bet");
+const startBtn = document.getElementById("startBtn");
+const resetBtn = document.getElementById("resetBtn");
+const message = document.getElementById("message");
+
+colors.forEach(c => {
+  const opt = document.createElement("option");
+  opt.value = c;
+  opt.textContent = c.charAt(0).toUpperCase() + c.slice(1);
+  betSelect.appendChild(opt);
+});
+
+let turtles = [];
+let raceOn = false;
+let animationId = null;
+
+function toCanvas(x, y) {
+  return [width / 2 + x, height / 2 - y];
+}
+
+function makeTurtles() {
+  turtles = colors.map((color, i) => ({
+    color,
+    x: -230,
+    y: yPositions[i]
+  }));
+}
+
+function drawTurtle(t) {
+  const [cx, cy] = toCanvas(t.x, t.y);
+  ctx.fillStyle = t.color;
+  ctx.strokeStyle = "rgba(0,0,0,0.4)";
+  ctx.beginPath();
+  ctx.ellipse(cx, cy, 12, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx + 12, cy);
+  ctx.lineTo(cx + 20, cy - 5);
+  ctx.lineTo(cx + 20, cy + 5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+}
+
+function drawTrackLine(x) {
+  const [cx, cyTop] = toCanvas(x, -100);
+  const [, cyBottom] = toCanvas(x, 100);
+  ctx.strokeStyle = "white";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.moveTo(cx, cyTop);
+  ctx.lineTo(cx, cyBottom);
+  ctx.stroke();
+}
+
+function render() {
+  ctx.clearRect(0, 0, width, height);
+  drawTrackLine(-230);
+  drawTrackLine(230);
+  turtles.forEach(drawTurtle);
+}
+
+function resetRace() {
+  raceOn = false;
+  if (animationId) cancelAnimationFrame(animationId);
+  makeTurtles();
+  render();
+  message.textContent = "";
+  betSelect.disabled = false;
+  startBtn.disabled = false;
+  resetBtn.disabled = true;
+}
+
+function step() {
+  if (!raceOn) return;
+
+  for (const t of turtles) {
+    if (t.x > 230) {
+      raceOn = false;
+      const winColor = t.color;
+      const userBet = betSelect.value;
+      if (winColor === userBet) {
+        message.textContent = `You WON!!! ${winColor[0].toUpperCase()}${winColor.slice(1)} turtle wins!`;
+      } else {
+        message.textContent = `You lost! ${winColor[0].toUpperCase()}${winColor.slice(1)} turtle wins!`;
+      }
+      resetBtn.disabled = false;
+      render();
+      return;
+    }
+    t.x += Math.floor(Math.random() * 10) + 1;
+  }
+
+  render();
+  animationId = requestAnimationFrame(step);
+}
+
+startBtn.addEventListener("click", () => {
+  message.textContent = "";
+  betSelect.disabled = true;
+  startBtn.disabled = true;
+  raceOn = true;
+  animationId = requestAnimationFrame(step);
+});
+
+resetBtn.addEventListener("click", resetRace);
+
+resetRace();
+</script>
+</body>
+</html>
